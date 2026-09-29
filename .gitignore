@@ -1,0 +1,28 @@
+# Node
+/node_modules
+/dist
+/build
+*.tsbuildinfo
+npm-debug.log*
+
+# Local environments and secrets
+.env
+.env.*
+!.env.example
+
+# Publisher key material (never commit)
+*.pem
+*.key
+/keys
+
+# Local observation cache
+/cache
+/.cache
+
+# Editors
+.idea/
+.vscode/
+*.swp
+
+# OS
+.DS_Store

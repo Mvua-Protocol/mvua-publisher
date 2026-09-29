@@ -1,0 +1,41 @@
+{
+  "name": "mvua-publisher",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Off-chain oracle publisher for the Mvua Protocol: fetches weather archives, normalizes and ed25519-signs daily rainfall observations, and submits them to the on-chain oracle-adapter on Stellar/Soroban.",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=24.18.0 <25"
+  },
+  "bin": {
+    "mvua-publisher": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "node --import tsx --test \"test/**/*.test.ts\"",
+    "start": "node --env-file=.env dist/index.js",
+    "dev": "node --env-file=.env --import tsx src/index.ts",
+    "keygen": "node --import tsx src/keygen.ts"
+  },
+  "dependencies": {
+    "@stellar/stellar-sdk": "13.1.0",
+    "tweetnacl": "1.0.3",
+    "zod": "3.24.1"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "19.6.1",
+    "@commitlint/config-conventional": "19.6.0",
+    "@eslint/js": "9.17.0",
+    "@types/node": "22.10.5",
+    "eslint": "9.17.0",
+    "prettier": "3.4.2",
+    "tsx": "4.19.2",
+    "typescript": "5.7.3",
+    "typescript-eslint": "8.19.0"
+  }
+}
