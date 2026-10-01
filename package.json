@@ -23,7 +23,7 @@
     "keygen": "node --import tsx src/keygen.ts"
   },
   "dependencies": {
-    "@stellar/stellar-sdk": "13.1.0",
+    "@stellar/stellar-sdk": "17.2.1",
     "tweetnacl": "1.0.3",
     "zod": "3.24.1"
   },
