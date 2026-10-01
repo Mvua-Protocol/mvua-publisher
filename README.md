@@ -19,10 +19,10 @@ Mvua pays smallholder farmers automatically when on chain weather data crosses a
 
 Mvua Protocol is built as separate repositories under the [Mvua-Protocol](https://github.com/Mvua-Protocol) organization. **This repository is an off chain oracle publisher**: it holds no funds and decides no payouts. It only reads weather data and submits signed observations that the on chain core verifies independently.
 
-| Layer | Repository | What it does |
-|---|---|---|
-| On chain core | [`mvua-contract`](https://github.com/Mvua-Protocol/mvua-contract) | Risk pools, policies, oracle adapter, trigger engine, payout vault. |
-| **Oracle publisher** | **`mvua-publisher`** (this repo) | **Fetch weather archives, corroborate, sign, and submit observations.** |
+| Layer                | Repository                                                        | What it does                                                            |
+| -------------------- | ----------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| On chain core        | [`mvua-contract`](https://github.com/Mvua-Protocol/mvua-contract) | Risk pools, policies, oracle adapter, trigger engine, payout vault.     |
+| **Oracle publisher** | **`mvua-publisher`** (this repo)                                  | **Fetch weather archives, corroborate, sign, and submit observations.** |
 
 The contract is the source of truth. This publisher is one of potentially several independent voices feeding it; the `oracle-adapter` aggregates a median and verifies every signature, so a single misbehaving or offline publisher cannot move the index on its own.
 
@@ -109,4 +109,3 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md) and [SECURITY.md](./SECURITY.md).
 ## License
 
 [MIT](./LICENSE).
-

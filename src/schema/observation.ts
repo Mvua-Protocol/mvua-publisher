@@ -117,5 +117,7 @@ export function observationScVal(input: ObservationInput): xdr.ScVal {
  * what `oracle-adapter.submit` reconstructs via `payload.to_xdr(&env)`.
  */
 export function encodeObservationPayloadXdr(input: ObservationInput): Buffer {
-  return observationScVal(input).toXDR();
+  // v17's XdrValue.toXdr() returns a Uint8Array; we keep a Buffer at the
+  // boundary so callers can sign it and the fixture test can .toString("hex").
+  return Buffer.from(observationScVal(input).toXdr());
 }

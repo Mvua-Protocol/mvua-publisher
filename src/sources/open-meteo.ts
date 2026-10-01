@@ -48,7 +48,7 @@ export function createOpenMeteoSource(opts: OpenMeteoOptions): RainfallSource {
       if (idx < 0) {
         throw new SourceError("open-meteo", `no row for ${date}`);
       }
-      const mm = sums[idx];
+      const mm: unknown = sums[idx];
       if (typeof mm !== "number" || !Number.isFinite(mm)) {
         throw new SourceError("open-meteo", `null or non-numeric precipitation for ${date}`);
       }

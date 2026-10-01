@@ -82,12 +82,12 @@ export async function submitObservation(p: SubmitParams, log: Logger): Promise<S
 
   let attempts = 0;
   let got = await server.getTransaction(sent.hash);
-  while (got.status === "NOT_FOUND" && attempts < 30) {
+  while (got.status === rpc.Api.GetTransactionStatus.NOT_FOUND && attempts < 30) {
     await sleep(1000);
     attempts += 1;
     got = await server.getTransaction(sent.hash);
   }
-  if (got.status !== "SUCCESS") {
+  if (got.status !== rpc.Api.GetTransactionStatus.SUCCESS) {
     throw new SubmitError(`transaction ${sent.hash} did not succeed: ${got.status}`);
   }
 

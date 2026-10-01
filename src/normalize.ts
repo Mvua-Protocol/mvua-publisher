@@ -37,13 +37,12 @@ export function normalizeRainfall(
   opts: NormalizeOptions,
 ): bigint {
   if (primary.date !== cross.date) {
-    throw new NormalizationError(
-      `source dates disagree: ${primary.date} vs ${cross.date}`,
-    );
+    throw new NormalizationError(`source dates disagree: ${primary.date} vs ${cross.date}`);
   }
   const primaryScaled = scaleMillimetres(primary.millimetres, opts.valueScale);
   const crossScaled = scaleMillimetres(cross.millimetres, opts.valueScale);
-  const delta = primaryScaled > crossScaled ? primaryScaled - crossScaled : crossScaled - primaryScaled;
+  const delta =
+    primaryScaled > crossScaled ? primaryScaled - crossScaled : crossScaled - primaryScaled;
   if (delta > opts.maxSourceDelta) {
     throw new NormalizationError(
       `sources disagree by ${delta} scaled units (> ${opts.maxSourceDelta}) for ${primary.date}`,

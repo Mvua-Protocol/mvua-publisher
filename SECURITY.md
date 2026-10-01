@@ -25,12 +25,12 @@ The publisher's trust surface is narrow but sharp:
 
 ## Our commitment
 
-| Severity | Acknowledgment | Fix target |
-|---|---|---|
-| Critical (key exposure, forgeable submissions) | 48 hours | As fast as safely possible; rotate affected keys |
-| High (wrong value can be signed) | 72 hours | 30 days |
-| Medium | 1 week | 60 days |
-| Low | 2 weeks | Best effort, next release |
+| Severity                                       | Acknowledgment | Fix target                                       |
+| ---------------------------------------------- | -------------- | ------------------------------------------------ |
+| Critical (key exposure, forgeable submissions) | 48 hours       | As fast as safely possible; rotate affected keys |
+| High (wrong value can be signed)               | 72 hours       | 30 days                                          |
+| Medium                                         | 1 week         | 60 days                                          |
+| Low                                            | 2 weeks        | Best effort, next release                        |
 
 We will credit reporters in the release notes unless you prefer to stay anonymous.
 
