@@ -60,7 +60,7 @@ function readReferenceHex(): string | undefined {
   }
 }
 
-test("payload encodes as a 4-entry map with contract-sorted keys", () => {
+void test("payload encodes as a 4-entry map with contract-sorted keys", () => {
   const sv = observationScVal(FIXTURE);
   assert.equal(sv.switch().name, "scvMap");
   const map = sv.map();
@@ -69,7 +69,7 @@ test("payload encodes as a 4-entry map with contract-sorted keys", () => {
   assert.deepEqual(keys, ["metric", "region", "timestamp", "value"]);
 });
 
-test("payload round-trips to the expected native values", () => {
+void test("payload round-trips to the expected native values", () => {
   const buf = encodeObservationPayloadXdr(FIXTURE);
   const decoded = scValToNative(xdr.ScVal.fromXDR(buf)) as Record<string, unknown>;
   assert.equal(decoded.region, "kilifi");
@@ -78,7 +78,7 @@ test("payload round-trips to the expected native values", () => {
   assert.equal(BigInt(decoded.value as bigint), 1234n);
 });
 
-test("payload XDR matches the Rust to_xdr reference", { skip: readReferenceHex() === undefined }, () => {
+void test("payload XDR matches the Rust to_xdr reference", { skip: readReferenceHex() === undefined }, () => {
   const expected = readReferenceHex();
   const actual = encodeObservationPayloadXdr(FIXTURE).toString("hex");
   assert.equal(actual, expected);
