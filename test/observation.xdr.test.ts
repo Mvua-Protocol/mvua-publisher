@@ -81,8 +81,12 @@ void test("payload round-trips to the expected native values", () => {
   assert.equal(BigInt(decoded.value as bigint), 1234n);
 });
 
-void test("payload XDR matches the Rust to_xdr reference", { skip: readReferenceHex() === undefined }, () => {
-  const expected = readReferenceHex();
-  const actual = encodeObservationPayloadXdr(FIXTURE).toString("hex");
-  assert.equal(actual, expected);
-});
+void test(
+  "payload XDR matches the Rust to_xdr reference",
+  { skip: readReferenceHex() === undefined },
+  () => {
+    const expected = readReferenceHex();
+    const actual = encodeObservationPayloadXdr(FIXTURE).toString("hex");
+    assert.equal(actual, expected);
+  },
+);

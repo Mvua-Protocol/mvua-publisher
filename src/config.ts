@@ -13,9 +13,7 @@
 import { z } from "zod";
 import type { LogLevel } from "./logger.js";
 
-const symbol = z
-  .string()
-  .regex(/^[A-Za-z0-9_]{1,32}$/, "must be 1-32 chars of [A-Za-z0-9_]");
+const symbol = z.string().regex(/^[A-Za-z0-9_]{1,32}$/, "must be 1-32 chars of [A-Za-z0-9_]");
 
 const schema = z.object({
   MVUA_NETWORK: z.enum(["testnet", "futurenet", "local"]).default("testnet"),
@@ -67,9 +65,7 @@ export class ConfigError extends Error {}
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   const parsed = schema.safeParse(env);
   if (!parsed.success) {
-    const issues = parsed.error.issues
-      .map((i) => `  ${i.path.join(".")}: ${i.message}`)
-      .join("\n");
+    const issues = parsed.error.issues.map((i) => `  ${i.path.join(".")}: ${i.message}`).join("\n");
     throw new ConfigError(`invalid configuration:\n${issues}`);
   }
   const c = parsed.data;
