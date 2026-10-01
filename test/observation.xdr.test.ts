@@ -62,16 +62,19 @@ function readReferenceHex(): string | undefined {
 
 void test("payload encodes as a 4-entry map with contract-sorted keys", () => {
   const sv = observationScVal(FIXTURE);
-  assert.equal(sv.switch().name, "scvMap");
-  const map = sv.map();
-  assert.ok(map);
-  const keys = map.map((e) => e.key().sym().toString());
+  // v17 models ScVal as a discriminated union of concrete classes: the arm is
+  // the `.type` tag and the payload is a typed field, not `.switch()`/`.map()`.
+  assert.equal(sv.type, "scvMap");
+  assert.ok(sv instanceof xdr.ScValMap);
+  const entries = sv.map;
+  assert.ok(entries);
+  const keys = entries.map((e) => e.key.value);
   assert.deepEqual(keys, ["metric", "region", "timestamp", "value"]);
 });
 
 void test("payload round-trips to the expected native values", () => {
   const buf = encodeObservationPayloadXdr(FIXTURE);
-  const decoded = scValToNative(xdr.ScVal.fromXDR(buf)) as Record<string, unknown>;
+  const decoded = scValToNative(xdr.ScVal.fromXdr(buf)) as Record<string, unknown>;
   assert.equal(decoded.region, "kilifi");
   assert.equal(decoded.metric, "rain_mm");
   assert.equal(BigInt(decoded.timestamp as bigint), 1_700_000_000n);
