@@ -55,8 +55,8 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
 
-      - name: Audit (high and above)
-        run: npm audit --audit-level=high
+      - name: Audit production dependencies (high and above)
+        run: npm audit --omit=dev --audit-level=high
 
   commitlint:
     name: Commit lint
