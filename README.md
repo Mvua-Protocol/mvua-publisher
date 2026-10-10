@@ -15,6 +15,10 @@
   <b>The off chain oracle publisher for <a href="https://github.com/Mvua-Protocol/mvua-contract">Mvua Protocol</a>: it turns public weather archives into signed, on chain rainfall observations.</b>
 </p>
 
+<p align="center">
+  <a href="https://mvua-site.vercel.app"><b>mvua-site.vercel.app</b></a>
+</p>
+
 Mvua pays smallholder farmers automatically when on chain weather data crosses a predefined index trigger. That only works if the weather data on chain is trustworthy. This service is one publisher in the oracle: it fetches a day of rainfall from independent sources, corroborates them, scales the reading to an integer, signs the exact payload the contract will verify, and submits it to the on chain `oracle-adapter`.
 
 > Status: **pre alpha**, in active development. Testnet only. Nothing here is deployed to mainnet.
