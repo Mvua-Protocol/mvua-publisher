@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="./assets/banner.svg" alt="Mvua Protocol publisher: public weather in, signed observations out" width="100%">
+</p>
+
 <h1 align="center">Mvua Protocol Publisher</h1>
 
 <p align="center">
