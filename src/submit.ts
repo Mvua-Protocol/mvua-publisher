@@ -12,7 +12,6 @@ import {
   Keypair,
   nativeToScVal,
   rpc,
-  scValToNative,
   TransactionBuilder,
   xdr,
 } from "@stellar/stellar-sdk";
@@ -38,9 +37,18 @@ export interface SubmitParams {
 }
 
 export interface SubmitResult {
-  readonly hash: string;
-  /** The ring slot the contract wrote, if decodable. */
-  readonly slot: number | undefined;
+  /** Transaction hash, or null when the oracle already holds this observation. */
+  readonly hash: string | null;
+}
+
+/**
+ * True if the oracle rejected the observation as a replay (`ReplayedObservation`,
+ * contract error 309, DR-0035): this publisher already has an observation at or
+ * after this timestamp, typically because an earlier attempt landed.
+ */
+export function isReplayRejection(err: unknown): boolean {
+  const message = err instanceof Error ? err.message : String(err);
+  return /Error\(Contract, #309\)/.test(message);
 }
 
 const sleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms));
@@ -71,7 +79,14 @@ export async function submitObservation(p: SubmitParams, log: Logger): Promise<S
     .setTimeout(30)
     .build();
 
-  const prepared = await server.prepareTransaction(built);
+  let prepared;
+  try {
+    prepared = await server.prepareTransaction(built);
+  } catch (err) {
+    // Simulation fails with the contract error before anything is sent.
+    if (isReplayRejection(err)) return { hash: null };
+    throw err;
+  }
   prepared.sign(source);
 
   const sent = await server.sendTransaction(prepared);
@@ -90,14 +105,5 @@ export async function submitObservation(p: SubmitParams, log: Logger): Promise<S
   if (got.status !== rpc.Api.GetTransactionStatus.SUCCESS) {
     throw new SubmitError(`transaction ${sent.hash} did not succeed: ${got.status}`);
   }
-
-  let slot: number | undefined;
-  try {
-    if (got.returnValue) {
-      slot = Number(scValToNative(got.returnValue) as unknown);
-    }
-  } catch {
-    slot = undefined;
-  }
-  return { hash: sent.hash, slot };
+  return { hash: sent.hash };
 }

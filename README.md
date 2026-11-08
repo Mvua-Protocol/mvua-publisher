@@ -64,7 +64,17 @@ A run reports a single UTC day and either submits one observation or aborts. It 
 4. **Sign**: the payload is encoded to XDR and signed with the publisher ed25519 key. This is the message the contract reconstructs and verifies.
 5. **Submit**: a separate fee paying account sends the transaction to `oracle-adapter.submit`.
 
-Every failure path aborts before submission. There is no retry or catch up in this version; an external scheduler invokes the run once per day.
+Every failure path aborts before submission. The network steps (both source fetches and the submission) are retried up to 4 times with exponential backoff (2, 4, 8 seconds) before the run gives up; a source disagreement is never retried. A retry or a rerun of the same day can never count twice: the oracle accepts each publisher's observation for a timestamp at most once (DR-0035), and the run reports `already submitted` instead of failing. Catching up on missed days is the next step (P2.2.2).
+
+### Running it daily
+
+A run is one shot, so the operating system's scheduler starts it once a day. Pick a time a few hours after midnight UTC, so the previous day is complete in both archives. For example, with cron at 06:00 UTC:
+
+```bash
+0 6 * * * cd /opt/mvua-publisher && /usr/bin/node --env-file=.env dist/index.js >> publisher.log 2>&1
+```
+
+On Windows, Task Scheduler runs the same command daily: `schtasks /create /sc daily /st 06:00 /tn mvua-publisher /tr "cmd /c cd /d C:\mvua-publisher && node --env-file=.env dist\index.js >> publisher.log 2>&1"` (the time is local, so set it to the equivalent of 06:00 UTC). A non-zero exit code means the day was not submitted, so alert on it.
 
 ## The two keys
 
