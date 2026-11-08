@@ -34,6 +34,8 @@ Mvua Protocol is built as separate repositories under the [Mvua-Protocol](https:
 
 The contract is the source of truth. This publisher is one of potentially several independent voices feeding it; the `oracle-adapter` aggregates a median and verifies every signature, so a single misbehaving or offline publisher cannot move the index on its own.
 
+On testnet this publisher feeds the live [`oracle-adapter`](https://stellar.expert/explorer/testnet/contract/CD4XMGP7ZSJW7X4HDSTVJAVV4ZXYWVXFSIMM24FUTIT6L3AK2IN2PLWI). The full deployment and the first settled season are on the [testnet deployment page](https://mvua-site.vercel.app/docs/reference/deployment).
+
 ## Why a separate repository
 
 The publisher runs in a different place, on a different clock, with a different trust surface than the contracts:
