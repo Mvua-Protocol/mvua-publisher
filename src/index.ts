@@ -6,14 +6,18 @@
  * failure (unreachable source, disagreement, bad config) aborts before
  * submission: a missing observation is safe, a wrong one is not.
  *
- * Scheduling, retries, and caching are Sprint 2.2; this run is invoked once per
- * day by an external scheduler for now.
+ * Scheduling (P2.2.1): the run stays one-shot and the OS scheduler starts it
+ * once a day (cron, a systemd timer, or Windows Task Scheduler; see README).
+ * Source fetches and the submission are retried with backoff; a rerun or retry
+ * can never double count, because the oracle rejects a replayed observation.
+ * The local cache and gap-filling replay are P2.2.2.
  *
  * Usage: `npm run dev [YYYY-MM-DD]` (defaults to yesterday UTC).
  */
 import { loadConfig } from "./config.js";
 import { createLogger } from "./logger.js";
 import { normalizeRainfall } from "./normalize.js";
+import { withRetry } from "./retry.js";
 import { encodeObservationPayloadXdr, type ObservationInput } from "./schema/observation.js";
 import { keypairFromSeedHex, signPayload } from "./signing/signer.js";
 import { createNoaaSource } from "./sources/noaa.js";
@@ -51,7 +55,10 @@ async function main(): Promise<void> {
   });
   const cross = createNoaaSource({ stationId: config.noaaStationId, token: config.noaaToken });
 
-  const [primaryDay, crossDay] = await Promise.all([primary.fetchDay(date), cross.fetchDay(date)]);
+  const [primaryDay, crossDay] = await Promise.all([
+    withRetry("open-meteo", () => primary.fetchDay(date), log),
+    withRetry("noaa", () => cross.fetchDay(date), log),
+  ]);
   log.debug("source readings", {
     primary: primaryDay.millimetres,
     cross: crossDay.millimetres,
@@ -72,24 +79,33 @@ async function main(): Promise<void> {
   const message = encodeObservationPayloadXdr(observation);
   const signature = signPayload(message, publisher.secretKey);
 
-  const result = await submitObservation(
-    {
-      rpcUrl: config.rpcUrl,
-      networkPassphrase: config.networkPassphrase,
-      allowHttp: config.network === "local",
-      oracleContractId: config.oracleContractId,
-      submitterSecret: config.submitterSecret,
-      region: observation.region,
-      metric: observation.metric,
-      timestamp: observation.timestamp,
-      value: observation.value,
-      publisher: publisher.publicKey,
-      signature,
-    },
+  const result = await withRetry(
+    "submit",
+    () =>
+      submitObservation(
+        {
+          rpcUrl: config.rpcUrl,
+          networkPassphrase: config.networkPassphrase,
+          allowHttp: config.network === "local",
+          oracleContractId: config.oracleContractId,
+          submitterSecret: config.submitterSecret,
+          region: observation.region,
+          metric: observation.metric,
+          timestamp: observation.timestamp,
+          value: observation.value,
+          publisher: publisher.publicKey,
+          signature,
+        },
+        log,
+      ),
     log,
   );
 
-  log.info("submitted", { date, value: value.toString(), hash: result.hash, slot: result.slot });
+  if (result.hash === null) {
+    log.info("already submitted", { date, value: value.toString() });
+  } else {
+    log.info("submitted", { date, value: value.toString(), hash: result.hash });
+  }
 }
 
 main().catch((err: unknown) => {
