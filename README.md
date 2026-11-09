@@ -64,7 +64,11 @@ A run reports a single UTC day and either submits one observation or aborts. It 
 4. **Sign**: the payload is encoded to XDR and signed with the publisher ed25519 key. This is the message the contract reconstructs and verifies.
 5. **Submit**: a separate fee paying account sends the transaction to `oracle-adapter.submit`.
 
-Every failure path aborts before submission. The network steps (both source fetches and the submission) are retried up to 4 times with exponential backoff (2, 4, 8 seconds) before the run gives up; a source disagreement is never retried. A retry or a rerun of the same day can never count twice: the oracle accepts each publisher's observation for a timestamp at most once (DR-0035), and the run reports `already submitted` instead of failing. Catching up on missed days is the next step (P2.2.2).
+Every failure path aborts before submission. The network steps (both source fetches and the submission) are retried up to 4 times with exponential backoff (2, 4, 8 seconds) before the run gives up; a source disagreement is never retried. A retry or a rerun of the same day can never count twice: the oracle accepts each publisher's observation for a timestamp at most once (DR-0035), and the run reports `already submitted` instead of failing.
+
+### Cache and replay
+
+Each day's corroborated value is written to `cache/<region>-<metric>.json` (git ignored) before it is submitted, and the outcome is recorded once the oracle has it. If a submission fails or the process dies, the next run replays that day with the exact cached value, oldest first, before the new day; it does not refetch, because a source may have revised its figure. The oracle keeps only each publisher's latest observation and requires increasing timestamps, so a replayed backlog lands in order and only its newest day stays current. A day that never fetched (for example, while the NOAA archive lagged) is not in the cache; report it explicitly with `npm run dev YYYY-MM-DD` before any newer day is submitted. Delete the cache file only if you want to start over: the oracle still rejects anything already submitted.
 
 ### Running it daily
 

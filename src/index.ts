@@ -10,10 +10,14 @@
  * once a day (cron, a systemd timer, or Windows Task Scheduler; see README).
  * Source fetches and the submission are retried with backoff; a rerun or retry
  * can never double count, because the oracle rejects a replayed observation.
- * The local cache and gap-filling replay are P2.2.2.
+ *
+ * Cache and replay (P2.2.2): each day's value is cached under `cache/` before it
+ * is submitted, so a failed or interrupted day is resubmitted with the same
+ * value on the next run, oldest first, before the new day (see `cache.ts`).
  *
  * Usage: `npm run dev [YYYY-MM-DD]` (defaults to yesterday UTC).
  */
+import { datesToSubmit, loadCache, saveCache } from "./cache.js";
 import { loadConfig } from "./config.js";
 import { createLogger } from "./logger.js";
 import { normalizeRainfall } from "./normalize.js";
@@ -55,56 +59,71 @@ async function main(): Promise<void> {
   });
   const cross = createNoaaSource({ stationId: config.noaaStationId, token: config.noaaToken });
 
-  const [primaryDay, crossDay] = await Promise.all([
-    withRetry("open-meteo", () => primary.fetchDay(date), log),
-    withRetry("noaa", () => cross.fetchDay(date), log),
-  ]);
-  log.debug("source readings", {
-    primary: primaryDay.millimetres,
-    cross: crossDay.millimetres,
-  });
+  const cachePath = `cache/${config.region}-${config.metric}.json`;
+  const cache = loadCache(cachePath);
 
-  const value = normalizeRainfall(primaryDay, crossDay, {
-    valueScale: config.valueScale,
-    maxSourceDelta: config.maxSourceDelta,
-  });
+  // Stop at the first failure: a later day submitted first would make the
+  // earlier one unsubmittable (timestamps must increase).
+  for (const day of datesToSubmit(cache, date)) {
+    let cached = cache[day];
+    if (cached === undefined) {
+      const [primaryDay, crossDay] = await Promise.all([
+        withRetry("open-meteo", () => primary.fetchDay(day), log),
+        withRetry("noaa", () => cross.fetchDay(day), log),
+      ]);
+      log.debug("source readings", {
+        day,
+        primary: primaryDay.millimetres,
+        cross: crossDay.millimetres,
+      });
+      const value = normalizeRainfall(primaryDay, crossDay, {
+        valueScale: config.valueScale,
+        maxSourceDelta: config.maxSourceDelta,
+      });
+      cached = { value: value.toString(), timestamp: timestampForDate(day).toString() };
+      cache[day] = cached;
+      saveCache(cachePath, cache);
+    } else {
+      log.info("replaying cached day", { day, value: cached.value });
+    }
 
-  const observation: ObservationInput = {
-    region: config.region,
-    metric: config.metric,
-    timestamp: timestampForDate(date),
-    value,
-  };
+    const observation: ObservationInput = {
+      region: config.region,
+      metric: config.metric,
+      timestamp: BigInt(cached.timestamp),
+      value: BigInt(cached.value),
+    };
+    const signature = signPayload(encodeObservationPayloadXdr(observation), publisher.secretKey);
 
-  const message = encodeObservationPayloadXdr(observation);
-  const signature = signPayload(message, publisher.secretKey);
+    const result = await withRetry(
+      "submit",
+      () =>
+        submitObservation(
+          {
+            rpcUrl: config.rpcUrl,
+            networkPassphrase: config.networkPassphrase,
+            allowHttp: config.network === "local",
+            oracleContractId: config.oracleContractId,
+            submitterSecret: config.submitterSecret,
+            region: observation.region,
+            metric: observation.metric,
+            timestamp: observation.timestamp,
+            value: observation.value,
+            publisher: publisher.publicKey,
+            signature,
+          },
+          log,
+        ),
+      log,
+    );
+    cache[day] = { ...cached, hash: result.hash };
+    saveCache(cachePath, cache);
 
-  const result = await withRetry(
-    "submit",
-    () =>
-      submitObservation(
-        {
-          rpcUrl: config.rpcUrl,
-          networkPassphrase: config.networkPassphrase,
-          allowHttp: config.network === "local",
-          oracleContractId: config.oracleContractId,
-          submitterSecret: config.submitterSecret,
-          region: observation.region,
-          metric: observation.metric,
-          timestamp: observation.timestamp,
-          value: observation.value,
-          publisher: publisher.publicKey,
-          signature,
-        },
-        log,
-      ),
-    log,
-  );
-
-  if (result.hash === null) {
-    log.info("already submitted", { date, value: value.toString() });
-  } else {
-    log.info("submitted", { date, value: value.toString(), hash: result.hash });
+    if (result.hash === null) {
+      log.info("already submitted", { day, value: cached.value });
+    } else {
+      log.info("submitted", { day, value: cached.value, hash: result.hash });
+    }
   }
 }
 
