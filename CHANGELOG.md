@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-11-09
+
 ### Added
 
 - Repository governance baseline: README, contributing guide, security policy, code of conduct, MIT license, issue and pull request templates, and CI (typecheck, lint, format, build, test, dependency audit, commit lint, and secret scanning), mirroring `mvua-contract` for a Node 24 TypeScript service.
