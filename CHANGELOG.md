@@ -15,6 +15,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Startup configuration and secret handling (P2.1.2 seed): `src/config.ts` validates every environment variable with `zod` and separates the ed25519 publisher signing identity from the fee-paying transaction submitter; `.env.example` documents the full contract.
 - README links the live testnet `oracle-adapter` this publisher feeds and the site's testnet deployment page, where the first settled season is recorded. The link points at the oracle redeployed on 2026-11-09 with the replay fix (DR-0035).
 - Retries and daily scheduling (Sprint 2.2, P2.2.1): `src/retry.ts` retries both source fetches and the submission up to 4 times with exponential backoff (2, 4, 8 seconds). A submission the oracle rejects as a replay (`ReplayedObservation`, contract error 309, DR-0035) counts as already submitted, so a retry or a rerun of the same day never double counts. The run stays one shot; the README documents running it daily with cron or Windows Task Scheduler.
+- Observation cache and replay (Sprint 2.2, P2.2.2): `src/cache.ts` keeps each day's value and submission outcome in `cache/<region>-<metric>.json`, written atomically. A run first replays cached days whose submission failed, oldest first and with the exact cached value, then reports the new day, and stops at the first failure so days always land in timestamp order.
 
 ### Changed
 
