@@ -1,0 +1,84 @@
+# Daily publisher run on testnet (DR-0039).
+#
+# Reports yesterday's rainfall from both registered publishers (A and B) to
+# the oracle-adapter, once a day. Each run's log is the uptime record for the
+# Phase 2 exit criterion (30+ days of continuous publishing).
+#
+# It stays off on the schedule until the repository variable
+# MVUA_PUBLISH_ENABLED is set to "true" (after both publishers are registered
+# on the oracle); it can always be started by hand from the Actions tab.
+#
+# Repository secrets: MVUA_PUBLISHER_SEED_HEX_A, MVUA_PUBLISHER_SEED_HEX_B,
+# MVUA_SUBMITTER_SECRET (a funded testnet account that only pays fees).
+# Repository variables: MVUA_ORACLE_CONTRACT_ID, MVUA_REGION, MVUA_LATITUDE,
+# MVUA_LONGITUDE, MVUA_PUBLISH_ENABLED.
+name: Daily publisher
+
+on:
+  schedule:
+    - cron: "0 6 * * *" # 06:00 UTC: yesterday is complete and both models have it
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: daily-publisher
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: github.event_name == 'workflow_dispatch' || vars.MVUA_PUBLISH_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      # Both publishers pay fees from one account; running them one after the
+      # other avoids racing its sequence number.
+      max-parallel: 1
+      fail-fast: false
+      matrix:
+        publisher: [a, b]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - run: npm ci
+      - run: npm run build
+
+      # The cache file holds each day's value until the oracle has it, so a
+      # failed day is replayed with the same value on the next run.
+      - name: Restore observation cache
+        uses: actions/cache/restore@v4
+        with:
+          path: cache
+          key: observations-${{ matrix.publisher }}-${{ github.run_id }}
+          restore-keys: observations-${{ matrix.publisher }}-
+
+      - name: Report yesterday
+        env:
+          MVUA_NETWORK: testnet
+          MVUA_RPC_URL: https://soroban-testnet.stellar.org
+          MVUA_NETWORK_PASSPHRASE: Test SDF Network ; September 2015
+          MVUA_ORACLE_CONTRACT_ID: ${{ vars.MVUA_ORACLE_CONTRACT_ID }}
+          MVUA_REGION: ${{ vars.MVUA_REGION }}
+          MVUA_METRIC: rain_mm
+          MVUA_LATITUDE: ${{ vars.MVUA_LATITUDE }}
+          MVUA_LONGITUDE: ${{ vars.MVUA_LONGITUDE }}
+          MVUA_CROSS_SOURCE: gfs
+          MVUA_PUBLISHER_SEED_HEX: ${{ matrix.publisher == 'a' && secrets.MVUA_PUBLISHER_SEED_HEX_A || secrets.MVUA_PUBLISHER_SEED_HEX_B }}
+          MVUA_SUBMITTER_SECRET: ${{ secrets.MVUA_SUBMITTER_SECRET }}
+        run: |
+          set -o pipefail
+          node dist/index.js | tee run.log
+          echo "Publisher ${{ matrix.publisher }}: $(grep -E '"(submitted|already submitted)"' run.log | tail -1)" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Save observation cache
+        if: always() && hashFiles('cache/**') != ''
+        uses: actions/cache/save@v4
+        with:
+          path: cache
+          key: observations-${{ matrix.publisher }}-${{ github.run_id }}

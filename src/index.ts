@@ -57,7 +57,14 @@ async function main(): Promise<void> {
     latitude: config.latitude,
     longitude: config.longitude,
   });
-  const cross = createNoaaSource({ stationId: config.noaaStationId, token: config.noaaToken });
+  const cross =
+    config.crossSource === "noaa"
+      ? createNoaaSource({ stationId: config.noaaStationId, token: config.noaaToken })
+      : createOpenMeteoSource({
+          latitude: config.latitude,
+          longitude: config.longitude,
+          model: "gfs_seamless",
+        });
 
   const cachePath = `cache/${config.region}-${config.metric}.json`;
   const cache = loadCache(cachePath);
@@ -68,8 +75,8 @@ async function main(): Promise<void> {
     let cached = cache[day];
     if (cached === undefined) {
       const [primaryDay, crossDay] = await Promise.all([
-        withRetry("open-meteo", () => primary.fetchDay(day), log),
-        withRetry("noaa", () => cross.fetchDay(day), log),
+        withRetry(primary.name, () => primary.fetchDay(day), log),
+        withRetry(cross.name, () => cross.fetchDay(day), log),
       ]);
       log.debug("source readings", {
         day,

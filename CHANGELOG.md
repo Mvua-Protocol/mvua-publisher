@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Changed
+
+- The cross check source is now NOAA's GFS model via Open-Meteo by default (`MVUA_CROSS_SOURCE=gfs`), with NOAA GHCN-Daily stations still selectable (`noaa`). Most GHCN-Daily stations in Kenya, Nigeria and Tanzania stopped reporting daily in 2025 (Kano's last value is from June 2025), so a NOAA cross check would refuse to submit almost every day (DR-0039). The Open-Meteo source takes an optional `model`.
+
+### Added
+
+- A scheduled GitHub Actions workflow (`publish.yml`) runs publishers A and B daily on testnet, keeps their caches between runs, and records each day in the run summary. It stays off until the repository variable `MVUA_PUBLISH_ENABLED` is `true`.
+
 ## [0.1.0] - 2026-11-09
 
 ### Added
