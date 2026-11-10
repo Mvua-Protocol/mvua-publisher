@@ -54,11 +54,11 @@ A run reports a single UTC day and either submits one observation or aborts. It 
 ```
   Open-Meteo (primary) ─┐
                         ├─► corroborate ─► scale mm→i128 ─► sign (ed25519) ─► submit
-  NOAA GHCN-D (cross) ──┘      within         value              payload         oracle-adapter
+  GFS model (cross) ────┘      within         value              payload         oracle-adapter
                               maxDelta         *scale             XDR             .submit(...)
 ```
 
-1. **Fetch** the day from two independent sources: [Open-Meteo](https://open-meteo.com) archive as primary (keyless, low latency) and [NOAA GHCN-Daily](https://www.ncei.noaa.gov) via the CDO v2 API as a cross check (token gated, higher latency).
+1. **Fetch** the day from two independent sources: the [Open-Meteo](https://open-meteo.com) archive as primary (keyless, low latency) and, as the cross check, NOAA's GFS weather model served by Open-Meteo (`MVUA_CROSS_SOURCE=gfs`, the default). GFS comes from a different agency than the primary's ECMWF data and is available for yesterday everywhere. NOAA GHCN-Daily stations remain available as `MVUA_CROSS_SOURCE=noaa`, but most stations in the pilot regions stopped reporting daily in 2025, so use them only where a station is current. Note that Open-Meteo's free tier is for non-commercial use; an operator running for profit needs a licensed plan.
 2. **Corroborate**: if the two sources disagree by more than `MVUA_MAX_SOURCE_DELTA` (in scaled units), the run throws and submits nothing.
 3. **Scale**: millimetres are multiplied by `MVUA_VALUE_SCALE` and rounded to an integer, so a fractional reading becomes an exact `i128` the contract can store.
 4. **Sign**: the payload is encoded to XDR and signed with the publisher ed25519 key. This is the message the contract reconstructs and verifies.
@@ -69,6 +69,10 @@ Every failure path aborts before submission. The network steps (both source fetc
 ### Cache and replay
 
 Each day's corroborated value is written to `cache/<region>-<metric>.json` (git ignored) before it is submitted, and the outcome is recorded once the oracle has it. If a submission fails or the process dies, the next run replays that day with the exact cached value, oldest first, before the new day; it does not refetch, because a source may have revised its figure. The oracle keeps only each publisher's latest observation and requires increasing timestamps, so a replayed backlog lands in order and only its newest day stays current. A day that never fetched (for example, while the NOAA archive lagged) is not in the cache; report it explicitly with `npm run dev YYYY-MM-DD` before any newer day is submitted. Delete the cache file only if you want to start over: the oracle still rejects anything already submitted.
+
+### Running it on GitHub Actions
+
+`.github/workflows/publish.yml` runs both registered publishers once a day at 06:00 UTC, one after the other, and keeps each publisher's cache between runs. Each run's log and summary is the record of that day. It needs repository secrets `MVUA_PUBLISHER_SEED_HEX_A`, `MVUA_PUBLISHER_SEED_HEX_B` and `MVUA_SUBMITTER_SECRET`, and repository variables `MVUA_ORACLE_CONTRACT_ID`, `MVUA_REGION`, `MVUA_LATITUDE` and `MVUA_LONGITUDE`. The schedule stays off until the variable `MVUA_PUBLISH_ENABLED` is `true`, so it can be merged before the publishers are registered on the oracle; it can also be started by hand from the Actions tab.
 
 ### Running it daily
 
