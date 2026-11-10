@@ -15,29 +15,46 @@ import type { LogLevel } from "./logger.js";
 
 const symbol = z.string().regex(/^[A-Za-z0-9_]{1,32}$/, "must be 1-32 chars of [A-Za-z0-9_]");
 
-const schema = z.object({
-  MVUA_NETWORK: z.enum(["testnet", "futurenet", "local"]).default("testnet"),
-  MVUA_RPC_URL: z.string().url(),
-  MVUA_NETWORK_PASSPHRASE: z.string().min(1),
+const schema = z
+  .object({
+    MVUA_NETWORK: z.enum(["testnet", "futurenet", "local"]).default("testnet"),
+    MVUA_RPC_URL: z.string().url(),
+    MVUA_NETWORK_PASSPHRASE: z.string().min(1),
 
-  MVUA_ORACLE_CONTRACT_ID: z.string().regex(/^C[A-Z2-7]{55}$/, "expected a C... contract id"),
+    MVUA_ORACLE_CONTRACT_ID: z.string().regex(/^C[A-Z2-7]{55}$/, "expected a C... contract id"),
 
-  MVUA_PUBLISHER_SEED_HEX: z.string().regex(/^[0-9a-fA-F]{64}$/, "expected 64 hex chars"),
-  MVUA_SUBMITTER_SECRET: z.string().regex(/^S[A-Z2-7]{55}$/, "expected an S... secret key"),
+    MVUA_PUBLISHER_SEED_HEX: z.string().regex(/^[0-9a-fA-F]{64}$/, "expected 64 hex chars"),
+    MVUA_SUBMITTER_SECRET: z.string().regex(/^S[A-Z2-7]{55}$/, "expected an S... secret key"),
 
-  MVUA_REGION: symbol,
-  MVUA_METRIC: symbol,
+    MVUA_REGION: symbol,
+    MVUA_METRIC: symbol,
 
-  MVUA_LATITUDE: z.coerce.number().min(-90).max(90),
-  MVUA_LONGITUDE: z.coerce.number().min(-180).max(180),
-  MVUA_NOAA_STATION_ID: z.string().min(1),
-  MVUA_NOAA_TOKEN: z.string().min(1),
+    MVUA_LATITUDE: z.coerce.number().min(-90).max(90),
+    MVUA_LONGITUDE: z.coerce.number().min(-180).max(180),
+    // Cross check source (DR-0039): `gfs` is NOAA's GFS model via Open-Meteo,
+    // available for yesterday everywhere; `noaa` is GHCN-Daily stations, which
+    // need a live station and a CDO token.
+    MVUA_CROSS_SOURCE: z.enum(["gfs", "noaa"]).default("gfs"),
+    MVUA_NOAA_STATION_ID: z.string().min(1).optional(),
+    MVUA_NOAA_TOKEN: z.string().min(1).optional(),
 
-  MVUA_VALUE_SCALE: z.coerce.number().int().positive().default(100),
-  MVUA_MAX_SOURCE_DELTA: z.coerce.bigint().nonnegative().default(500n),
+    MVUA_VALUE_SCALE: z.coerce.number().int().positive().default(100),
+    MVUA_MAX_SOURCE_DELTA: z.coerce.bigint().nonnegative().default(500n),
 
-  MVUA_LOG_LEVEL: z.enum(["debug", "info", "warn", "error"]).default("info"),
-});
+    MVUA_LOG_LEVEL: z.enum(["debug", "info", "warn", "error"]).default("info"),
+  })
+  .superRefine((c, ctx) => {
+    if (c.MVUA_CROSS_SOURCE !== "noaa") return;
+    for (const key of ["MVUA_NOAA_STATION_ID", "MVUA_NOAA_TOKEN"] as const) {
+      if (!c[key]) {
+        ctx.addIssue({
+          code: "custom",
+          path: [key],
+          message: "required when MVUA_CROSS_SOURCE=noaa",
+        });
+      }
+    }
+  });
 
 /** The validated, typed configuration. */
 export interface Config {
@@ -51,6 +68,8 @@ export interface Config {
   readonly metric: string;
   readonly latitude: number;
   readonly longitude: number;
+  readonly crossSource: "gfs" | "noaa";
+  /** Set when `crossSource` is `noaa` (validated). */
   readonly noaaStationId: string;
   readonly noaaToken: string;
   readonly valueScale: number;
@@ -80,8 +99,9 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     metric: c.MVUA_METRIC,
     latitude: c.MVUA_LATITUDE,
     longitude: c.MVUA_LONGITUDE,
-    noaaStationId: c.MVUA_NOAA_STATION_ID,
-    noaaToken: c.MVUA_NOAA_TOKEN,
+    crossSource: c.MVUA_CROSS_SOURCE,
+    noaaStationId: c.MVUA_NOAA_STATION_ID ?? "",
+    noaaToken: c.MVUA_NOAA_TOKEN ?? "",
     valueScale: c.MVUA_VALUE_SCALE,
     maxSourceDelta: c.MVUA_MAX_SOURCE_DELTA,
     logLevel: c.MVUA_LOG_LEVEL,
