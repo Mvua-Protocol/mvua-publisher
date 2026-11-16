@@ -9,7 +9,7 @@
     "node": ">=24.18.0 <25"
   },
   "bin": {
-    "mvua-publisher": "./dist/index.js"
+    "mvua-publisher": "./dist/src/index.js"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
@@ -18,7 +18,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "test": "node --import tsx --test \"test/**/*.test.ts\"",
-    "start": "node --env-file=.env dist/index.js",
+    "start": "node --env-file=.env dist/src/index.js",
     "dev": "node --env-file=.env --import tsx src/index.ts",
     "keygen": "node --import tsx src/keygen.ts"
   },

@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Fixed
+
+- The built entrypoint is `dist/src/index.js` (the build compiles `src/` and `test/` together under `dist/`), but the daily workflow, `npm start`, the `bin` entry and the README's cron and Task Scheduler examples all pointed at `dist/index.js`. The first scheduled run failed with `Cannot find module`; all of them now use the right path.
+
 ### Changed
 
 - The cross check source is now NOAA's GFS model via Open-Meteo by default (`MVUA_CROSS_SOURCE=gfs`), with NOAA GHCN-Daily stations still selectable (`noaa`). Most GHCN-Daily stations in Kenya, Nigeria and Tanzania stopped reporting daily in 2025 (Kano's last value is from June 2025), so a NOAA cross check would refuse to submit almost every day (DR-0039). The Open-Meteo source takes an optional `model`.
