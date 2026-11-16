@@ -73,7 +73,7 @@ jobs:
           MVUA_SUBMITTER_SECRET: ${{ secrets.MVUA_SUBMITTER_SECRET }}
         run: |
           set -o pipefail
-          node dist/index.js | tee run.log
+          node dist/src/index.js | tee run.log
           echo "Publisher ${{ matrix.publisher }}: $(grep -E '"(submitted|already submitted)"' run.log | tail -1)" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Save observation cache

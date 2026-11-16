@@ -79,10 +79,10 @@ Each day's corroborated value is written to `cache/<region>-<metric>.json` (git 
 A run is one shot, so the operating system's scheduler starts it once a day. Pick a time a few hours after midnight UTC, so the previous day is complete in both archives. For example, with cron at 06:00 UTC:
 
 ```bash
-0 6 * * * cd /opt/mvua-publisher && /usr/bin/node --env-file=.env dist/index.js >> publisher.log 2>&1
+0 6 * * * cd /opt/mvua-publisher && /usr/bin/node --env-file=.env dist/src/index.js >> publisher.log 2>&1
 ```
 
-On Windows, Task Scheduler runs the same command daily: `schtasks /create /sc daily /st 06:00 /tn mvua-publisher /tr "cmd /c cd /d C:\mvua-publisher && node --env-file=.env dist\index.js >> publisher.log 2>&1"` (the time is local, so set it to the equivalent of 06:00 UTC). A non-zero exit code means the day was not submitted, so alert on it.
+On Windows, Task Scheduler runs the same command daily: `schtasks /create /sc daily /st 06:00 /tn mvua-publisher /tr "cmd /c cd /d C:\mvua-publisher && node --env-file=.env dist\src\index.js >> publisher.log 2>&1"` (the time is local, so set it to the equivalent of 06:00 UTC). A non-zero exit code means the day was not submitted, so alert on it.
 
 ## The two keys
 
