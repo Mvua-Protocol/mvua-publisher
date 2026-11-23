@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- A day whose run failed before it had a value was lost for good: the cache only replays days it already holds, and on 2026-11-20 and 2026-11-21 one publisher's GFS fetch failed four times, so that publisher never reported 2026-11-19 or 2026-11-20. The next run now also fetches and submits any days missed since the newest cached day (up to 7), oldest first; a missed day whose sources are still down is skipped so it cannot block newer days. Source fetches also retry longer, 6 tries over about 2.5 minutes instead of 4 over 14 seconds.
 - The built entrypoint is `dist/src/index.js` (the build compiles `src/` and `test/` together under `dist/`), but the daily workflow, `npm start`, the `bin` entry and the README's cron and Task Scheduler examples all pointed at `dist/index.js`. The first scheduled run failed with `Cannot find module`; all of them now use the right path.
 
 ### Changed

@@ -43,9 +43,35 @@ export function saveCache(path: string, cache: ObservationCache): void {
   renameSync(tmp, path);
 }
 
-/** The days this run should submit, oldest first: earlier pending days, then `date` unless already submitted. */
+/** The UTC day after `date` (YYYY-MM-DD). */
+function nextDay(date: string): string {
+  const d = new Date(`${date}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + 1);
+  return d.toISOString().slice(0, 10);
+}
+
+/**
+ * Days between the newest cached day and `date` that were never cached: the
+ * run that should have reported them failed before it had a value (a source
+ * fetch failed). Only the most recent `maxDays` are returned.
+ */
+export function missedDays(cache: ObservationCache, date: string, maxDays = 7): string[] {
+  const newest = Object.keys(cache)
+    .filter((d) => d < date)
+    .sort()
+    .at(-1);
+  if (newest === undefined) return [];
+  const missed: string[] = [];
+  for (let d = nextDay(newest); d < date; d = nextDay(d)) missed.push(d);
+  return missed.slice(-maxDays);
+}
+
+/**
+ * The days this run should submit, oldest first: earlier pending days and
+ * missed days, then `date` unless already submitted.
+ */
 export function datesToSubmit(cache: ObservationCache, date: string): string[] {
   const pending = Object.keys(cache).filter((d) => d < date && cache[d]?.hash === undefined);
   const target = cache[date]?.hash === undefined ? [date] : [];
-  return [...pending.sort(), ...target];
+  return [...pending, ...missedDays(cache, date)].sort().concat(target);
 }
