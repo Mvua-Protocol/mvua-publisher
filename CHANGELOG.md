@@ -17,6 +17,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- Publisher runbook (P2.3.3, `docs/RUNBOOK.md`): everything a third party needs to run a publisher from the documentation alone: requirements and costs, keys, registration through the 7 day timelock, configuration, a first run, daily scheduling, monitoring, a table of failures and what to do, key rotation and retirement, and a security checklist. Linked from the README.
 - A scheduled GitHub Actions workflow (`publish.yml`) runs publishers A and B daily on testnet, keeps their caches between runs, and records each day in the run summary. It stays off until the repository variable `MVUA_PUBLISH_ENABLED` is `true`.
 
 ## [0.1.0] - 2026-11-09
