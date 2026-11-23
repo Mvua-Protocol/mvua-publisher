@@ -13,7 +13,9 @@
  *
  * Cache and replay (P2.2.2): each day's value is cached under `cache/` before it
  * is submitted, so a failed or interrupted day is resubmitted with the same
- * value on the next run, oldest first, before the new day (see `cache.ts`).
+ * value on the next run, oldest first, before the new day (see `cache.ts`). A
+ * day whose run failed before it had a value (a source was down) is fetched
+ * and submitted by the next run, up to 7 days back.
  *
  * Usage: `npm run dev [YYYY-MM-DD]` (defaults to yesterday UTC).
  */
@@ -74,10 +76,23 @@ async function main(): Promise<void> {
   for (const day of datesToSubmit(cache, date)) {
     let cached = cache[day];
     if (cached === undefined) {
-      const [primaryDay, crossDay] = await Promise.all([
-        withRetry(primary.name, () => primary.fetchDay(day), log),
-        withRetry(cross.name, () => cross.fetchDay(day), log),
-      ]);
+      // Sources sometimes drop connections for a minute or two, so fetches
+      // retry longer than the submit: 6 tries over about 2.5 minutes.
+      let fetched;
+      try {
+        fetched = await Promise.all([
+          withRetry(primary.name, () => primary.fetchDay(day), log, 6, 5000),
+          withRetry(cross.name, () => cross.fetchDay(day), log, 6, 5000),
+        ]);
+      } catch (err) {
+        // A missed earlier day has no value yet, so skipping it is safe and
+        // must not block the days after it. The run's own day still fails.
+        if (day === date) throw err;
+        const error = err instanceof Error ? err.message : String(err);
+        log.warn("skipping missed day, sources unavailable", { day, error });
+        continue;
+      }
+      const [primaryDay, crossDay] = fetched;
       log.debug("source readings", {
         day,
         primary: primaryDay.millimetres,
