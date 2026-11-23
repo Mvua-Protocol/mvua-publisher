@@ -64,7 +64,7 @@ A run reports a single UTC day and either submits one observation or aborts. It 
 4. **Sign**: the payload is encoded to XDR and signed with the publisher ed25519 key. This is the message the contract reconstructs and verifies.
 5. **Submit**: a separate fee paying account sends the transaction to `oracle-adapter.submit`.
 
-Every failure path aborts before submission. The network steps (both source fetches and the submission) are retried up to 4 times with exponential backoff (2, 4, 8 seconds) before the run gives up; a source disagreement is never retried. A retry or a rerun of the same day can never count twice: the oracle accepts each publisher's observation for a timestamp at most once (DR-0035), and the run reports `already submitted` instead of failing.
+Every failure path aborts before submission. The network steps are retried with exponential backoff before the run gives up: each source fetch up to 6 times over about 2.5 minutes (5, 10, 20, 40, 80 seconds), and the submission up to 4 times (2, 4, 8 seconds). A source disagreement is never retried. A retry or a rerun of the same day can never count twice: the oracle accepts each publisher's observation for a timestamp at most once (DR-0035), and the run reports `already submitted` instead of failing.
 
 ### Cache and replay
 
