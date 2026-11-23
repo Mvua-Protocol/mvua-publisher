@@ -68,7 +68,11 @@ Every failure path aborts before submission. The network steps (both source fetc
 
 ### Cache and replay
 
-Each day's corroborated value is written to `cache/<region>-<metric>.json` (git ignored) before it is submitted, and the outcome is recorded once the oracle has it. If a submission fails or the process dies, the next run replays that day with the exact cached value, oldest first, before the new day; it does not refetch, because a source may have revised its figure. The oracle keeps only each publisher's latest observation and requires increasing timestamps, so a replayed backlog lands in order and only its newest day stays current. A day that never fetched (for example, while the NOAA archive lagged) is not in the cache; report it explicitly with `npm run dev YYYY-MM-DD` before any newer day is submitted. Delete the cache file only if you want to start over: the oracle still rejects anything already submitted.
+Each day's corroborated value is written to `cache/<region>-<metric>.json` (git ignored) before it is submitted, and the outcome is recorded once the oracle has it. If a submission fails or the process dies, the next run replays that day with the exact cached value, oldest first, before the new day; it does not refetch, because a source may have revised its figure. The oracle keeps only each publisher's latest observation and requires increasing timestamps, so a replayed backlog lands in order and only its newest day stays current. A day whose run failed before it had a value (a source was down) is not in the cache; the next run fetches and submits it, up to 7 days back, before the new day. If its sources are still down it is skipped, so it never blocks newer days. Delete the cache file only if you want to start over: the oracle still rejects anything already submitted.
+
+### Uptime status
+
+`npm run status [days]` (after `npm run build`) reads the cache and prints, per series, how many of the last `days` days (default 30) were submitted, which were missed, the uptime percentage and whether it meets the 99.5 percent target. Days before the cache's first entry are not counted. It reads no secrets, and the GitHub Actions workflow writes it to each run's summary.
 
 ### Running it on GitHub Actions
 

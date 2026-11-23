@@ -17,6 +17,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- Uptime status (P2.2.3): `npm run status [days]` reports, from the observation cache, the days submitted and missed over the last 30 days (by default), the uptime percentage and whether it meets the 99.5% target. The daily workflow writes it to each run's summary, even when the run failed. The publisher is a one-shot run, so status comes from the cache rather than an HTTP endpoint.
 - A scheduled GitHub Actions workflow (`publish.yml`) runs publishers A and B daily on testnet, keeps their caches between runs, and records each day in the run summary. It stays off until the repository variable `MVUA_PUBLISH_ENABLED` is `true`.
 
 ## [0.1.0] - 2026-11-09
