@@ -116,6 +116,8 @@ This is the single most likely point of silent divergence, so it is isolated in 
 
 ## Getting started
 
+To operate a publisher end to end (keys, registration, scheduling, monitoring and failures), follow the [publisher runbook](docs/RUNBOOK.md).
+
 Requires Node.js 24 (pinned in `.nvmrc`).
 
 ```bash
