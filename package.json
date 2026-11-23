@@ -19,6 +19,7 @@
     "format:check": "prettier --check .",
     "test": "node --import tsx --test \"test/**/*.test.ts\"",
     "start": "node --env-file=.env dist/src/index.js",
+    "status": "node dist/src/status.js",
     "dev": "node --env-file=.env --import tsx src/index.ts",
     "keygen": "node --import tsx src/keygen.ts"
   },
